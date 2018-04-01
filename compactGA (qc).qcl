@@ -1,0 +1,115 @@
+const n = 5;
+const INNERLOOPTIME = 500;
+const THETA = pi/128;
+const NHALFPI = (pi/THETA)/2;
+const foo = //vector(3,2,1,0,1,2,3,4);
+//vector(7,6,5,4,3,2,1,0,1,2,3,4,5,6,7,9);
+vector(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16);
+operator restore(qureg q,int vector v) {
+	int i;
+	for i=0 to n-1 {
+		Rot(v[i]*THETA,q[i]); 
+	}
+}
+int fit(int x){
+	return foo[x];
+	/*int c=0;
+	int i;
+	for i =0 to n-1 {
+		if bit(x,i) {
+			c = c+1;
+		}
+	}
+	return c;*/
+}
+qufunct Fit(quconst x,qureg y,int a) {    // Construct oracle op. G from g
+	//pesudo-measure
+	int i;
+	int ct = 0;
+	for i=0 to #x-1 {
+		if x[i] { ct = ct + 2^i; }
+	}
+	if fit(ct) >= fit(a) { Not(y);}
+}
+procedure resetregister(qureg q) {
+	int i;
+	int m;
+	for i=0 to #q-1 { // iterate over qubits
+		measure q[i],m; // measure i-th qubit
+		if m==1 { Not(q[i]); } // invert if measued 1
+	}
+}
+
+int eval(int a1,int a2) {
+
+	//if fit(a1) == fit(a2) {return 2147483647;}
+	if fit(a1) > fit(a2)  {
+	return a1;
+	} else {
+	return a2;
+	}
+}
+procedure main() {
+	qureg qstate[n];
+	qureg ostate[1];
+	int mo;
+	int a1;
+	int a2; 
+	int win;int loser;
+	int time = 0;
+	int i;
+	int outp;
+	int vector v = vector(0,0,0,0,0); //tracking op
+	reset;
+	//H(qstate);
+	while time  < INNERLOOPTIME {
+				
+				   resetregister(qstate);
+				   H(qstate);			
+				   restore(qstate,v);
+				   if time mod 20 == 0{
+					dump qstate;
+					plot qstate;
+					}		
+				   measure qstate,a1;	
+				
+				   {
+				   resetregister(qstate & ostate);
+				   H(qstate);		
+				   restore(qstate,v);
+				   Fit(qstate,ostate,a1); // |x>|0> -> |x>|1> if fit(qstate) > fit(a1)
+				   dump ostate;
+				   measure ostate,mo;
+				   } until mo ==1;
+				   measure qstate,a2;
+
+			win = eval(a1,a2);
+			print "winner is", win;
+			if win == a1 { loser = a2;} else { loser = a1;}
+				for i = 0 to n-1 {
+					if bit(win,i) xor bit(loser,i) {
+						if bit(win,i)  and v[i] != -1*NHALFPI {
+							
+							v[i] = v[i] -1;
+						
+						}				 
+							
+						if not bit(win,i) and v[i] != NHALFPI {
+							v[i] = v[i] +1;
+						
+						
+						}
+					}
+				}
+		
+	time = time +1;
+
+	}
+	resetregister(qstate);
+	H(qstate);
+	restore(qstate,v);
+	plot qstate;
+	dump qstate;
+	measure qstate, outp;
+	print outp;
+}
